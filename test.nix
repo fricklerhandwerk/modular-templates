@@ -66,8 +66,89 @@ let
       # NOTE: can't set it the type's `default` as that will always be overridden
       config.example.templates.simple = value: toString value.data;
     };
+  modular-templates =
+    {
+      config,
+      options,
+      lib,
+      ...
+    }:
+    let
+      inherit (lib) mkOption types;
+    in
+    {
+      options.example = mkOption {
+        type =
+          with types;
+          submodule (example: {
+            options = {
+              data = mkOption {
+                type = with types; int;
+              };
+              templates = mkOption {
+                type =
+                  with types;
+                  attrsOf (submoduleWith {
+                    modules = [
+                      {
+                        options.__toString = mkOption {
+                          type = with types; functionTo str;
+                        };
+                      }
+                    ];
+                  });
+              };
+              outputs = mkOption {
+                type = with types; attrsOf str;
+                default = lib.mapAttrs (name: template: toString template) example.config.templates;
+                readOnly = true;
+              };
+            };
+            config.templates.simple = {
+              __toString = _: toString example.config.data;
+            };
+          });
+      };
+    };
 in
 {
+  test-modular-templates = {
+    expr =
+      let
+        fancy =
+          fancy:
+          let
+            inherit (fancy.lib) mkOption types;
+          in
+          {
+            options = {
+              extra-data = mkOption {
+                type = types.int;
+              };
+              __toString = mkOption {
+                type = with types; functionTo str;
+              };
+            };
+            config.__toString = _: toString fancy.config.extra-data;
+          };
+      in
+      (eval [
+        modular-templates
+        {
+          example = value: {
+            data = 1;
+            templates.fancy = {
+              imports = [ fancy ];
+              extra-data = value.config.data + 2;
+            };
+          };
+        }
+      ]).example.outputs;
+    expected = {
+      simple = "1";
+      fancy = "3";
+    };
+  };
   test-many-templates = {
     expr =
       (eval [

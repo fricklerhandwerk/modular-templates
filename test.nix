@@ -90,11 +90,21 @@ let
                   with types;
                   attrsOf (submoduleWith {
                     modules = [
-                      {
+                      (template: {
                         options.__toString = mkOption {
                           type = with types; functionTo str;
                         };
-                      }
+                        options.__value = mkOption {
+                          description = ''
+                            all native values of the template, can be used for overriding it
+                          '';
+                          type = with types; attrs;
+                          default = lib.removeAttrs template.config [
+                            "__toString"
+                            "__value"
+                          ];
+                        };
+                      })
                     ];
                   });
               };
@@ -125,11 +135,15 @@ in
               extra-data = mkOption {
                 type = types.int;
               };
+              nonsense = mkOption {
+                type = types.str;
+                default = "";
+              };
               __toString = mkOption {
                 type = with types; functionTo str;
               };
             };
-            config.__toString = _: toString fancy.config.extra-data;
+            config.__toString = _: toString fancy.config.extra-data + fancy.config.nonsense;
           };
       in
       (eval [
@@ -141,12 +155,20 @@ in
               imports = [ fancy ];
               extra-data = value.config.data + 2;
             };
+            templates.extra-fancy = extra-fancy: {
+              imports = [ fancy ];
+              # override an existing template!
+              config = value.config.templates.fancy.__value // {
+                nonsense = "a";
+              };
+            };
           };
         }
       ]).example.outputs;
     expected = {
       simple = "1";
       fancy = "3";
+      extra-fancy = "3a";
     };
   };
   test-many-templates = {

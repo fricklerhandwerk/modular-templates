@@ -24,7 +24,7 @@ in
           with pkgs;
           with lib;
           ''
-            ${getExe nix-unit} ${toString ./test.nix} "$@"
+            exec ${getExe nix-unit} ${toString ./test.nix} "$@"
           '';
       };
       test-loop = pkgs.writeShellApplication {
@@ -33,7 +33,7 @@ in
           with pkgs;
           with lib;
           ''
-            ${getExe watchexec} -w ${toString ./.} -- ${getExe run-tests}
+            exec ${getExe watchexec} -w ${toString ./.} -- ${getExe run-tests} "$@"
           '';
       };
     in

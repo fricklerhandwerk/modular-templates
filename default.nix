@@ -48,4 +48,5 @@ in
         '';
       };
     };
+  test = import ./test.nix;
 }

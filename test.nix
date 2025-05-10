@@ -22,7 +22,7 @@ let
               };
               __toString = mkOption {
                 type = with types; functionTo str;
-                default = _: toString example.config.data;
+                default = self: toString self.data;
               };
               output = mkOption {
                 type = types.str;
@@ -35,6 +35,19 @@ let
     };
 in
 {
+  test-override-template = {
+    expr =
+      (eval [
+        base
+        {
+          example = {
+            data = 1;
+            __toString = self: toString (self.data + 1);
+          };
+        }
+      ]).example.output;
+    expected = "2";
+  };
   test-simple-template = {
     expr =
       (eval [
